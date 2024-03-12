@@ -47,6 +47,8 @@ fi
 
 rm -rf "${frameworks_dir}" "${python_dir}" "${version_file}" Python-*.zip
 mkdir "${frameworks_dir}"
+mkdir "${frameworks_dir}/.dylibs"
+
 python_url=$(curl --silent --location https://api.github.com/repos/beeware/Python-Apple-support/releases | jq --raw-output --arg python_version "${python_version}" '.[] | select(.name | contains($python_version)) | .assets[].browser_download_url' | head -n 1)
 
 python_file=$(echo "${python_url}" | awk -F/ '{print $NF}')

@@ -76,13 +76,32 @@ for library in ./**/*.so ./**/*.dylib; do
   library_name="$(basename "${library%.cpython*}")"
   directory="$(dirname "${library/.\//}")"
 
+  # numpy
+  # shellcheck disable=SC2154
+  install_name_tool -change "@loader_path/../../.dylibs/libopenblas64_.0.dylib" "@loader_path/../.dylibs/${bundle_name}_libopenblas64_.0.dylib" "${library}" &>/dev/null
+  install_name_tool -change "@loader_path/../.dylibs/libopenblas64_.0.dylib" "@loader_path/../.dylibs/${bundle_name}_libopenblas64_.0.dylib" "${library}" &>/dev/null
+
+  # scipy
+  install_name_tool -change "@loader_path/../.dylibs/libopenblas.0.dylib" "@loader_path/../.dylibs/${bundle_name}_libopenblas.0.dylib" "${library}" &>/dev/null
+  install_name_tool -change "@loader_path/../.dylibs/libgfortran.5.dylib" "@loader_path/../.dylibs/${bundle_name}_libgfortran.5.dylib" "${library}" &>/dev/null
+  install_name_tool -change "@loader_path/../../../../.dylibs/libopenblas.0.dylib" "@loader_path/../.dylibs/${bundle_name}_libopenblas.0.dylib" "${library}" &>/dev/null
+  install_name_tool -change "@loader_path/../../../.dylibs/libopenblas.0.dylib" "@loader_path/../.dylibs/${bundle_name}_libopenblas.0.dylib" "${library}" &>/dev/null
+  install_name_tool -change "@loader_path/../../.dylibs/libopenblas.0.dylib" "@loader_path/../.dylibs/${bundle_name}_libopenblas.0.dylib" "${library}" &>/dev/null
+  install_name_tool -change "@loader_path/../../../../.dylibs/libgfortran.5.dylib" "@loader_path/../.dylibs/${bundle_name}_libgfortran.5.dylib" "${library}" &>/dev/null
+  install_name_tool -change "@loader_path/../../../.dylibs/libgfortran.5.dylib" "@loader_path/../.dylibs/${bundle_name}_libgfortran.5.dylib" "${library}" &>/dev/null
+  install_name_tool -change "@loader_path/../../.dylibs/libomp.dylib" "@loader_path/../.dylibs/${bundle_name}_libomp.dylib" "${library}" &>/dev/null
+
+  # sklearn
+  install_name_tool -change "@loader_path/.dylibs/libomp.dylib" "@loader_path/../.dylibs/${bundle_name}_libomp.dylib" "${library}" &>/dev/null
+  install_name_tool -change "@loader_path/../.dylibs/libomp.dylib" "@loader_path/../.dylibs/${bundle_name}_libomp.dylib" "${library}" &>/dev/null
+
   if [ "${directory}" = "." ]; then
     # shellcheck disable=SC2154
-    folder_name="${bundle_name}-${library_name}.framework"
+    folder_name="${bundle_name##*.}-${library_name}.framework"
     prefix_package="${bundle_name}"
   else
     # shellcheck disable=SC2154
-    folder_name="${bundle_name}-$(echo "${directory}" | tr '/' '-')-${library_name}.framework"
+    folder_name="${bundle_name##*.}-$(echo "${directory}" | tr '/' '-')-${library_name}.framework"
     prefix_package="${bundle_name}.$(echo "${directory}" | tr '/' '.')"
   fi
 
@@ -144,6 +163,18 @@ for library in ./**/*.so ./**/*.dylib; do
     echo "</dict>"
     echo "</plist>"
   } >"${output_dir}/${folder_name}/Info.plist"
+done
+
+for lib in ./.dylibs/*.dylib; do
+  library_base=$(basename "${lib}")
+  new_lib="${output_dir}/.dylibs/${bundle_name}_${library_base}"
+  mv "${lib}" "${new_lib}"
+  # shellcheck disable=SC2154
+  install_name_tool -change "@loader_path/libgfortran.5.dylib" "@loader_path/${bundle_name}_libgfortran.5.dylib" "${new_lib}" &>/dev/null
+  install_name_tool -change "@loader_path/libquadmath.0.dylib" "@loader_path/${bundle_name}_libquadmath.0.dylib" "${new_lib}" &>/dev/null
+  install_name_tool -change "@loader_path/libgcc_s.1.1.dylib" "@loader_path/${bundle_name}_libgcc_s.1.1.dylib" "${new_lib}" &>/dev/null
+  install_name_tool -change "@loader_path/libomp.dylib" "@loader_path/${bundle_name}_libomp.dylib" "${new_lib}" &>/dev/null
+  xcrun vtool -arch arm64 -set-build-version 2 "${minimum_os_version}" "${sdk_version}" -replace -output "${new_lib}" "${new_lib}" &>/dev/null
 done
 
 popd &>/dev/null

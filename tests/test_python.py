@@ -11,7 +11,7 @@ import ctypes
 import datetime
 import dbm
 import decimal
-import xml.etree.ElementTree as ET
+# import xml.etree.ElementTree as ET
 import heapq
 import json
 import lzma
@@ -55,9 +55,9 @@ var = contextvars.ContextVar('var', default=42)
 var.set(100)
 
 # csv: CSV file reading and writing
-with open('example.csv', mode='w', newline='') as file:
-    writer = csv.writer(file)
-    writer.writerow(['example', 42])
+# with open('example.csv', mode='w', newline='') as file:
+#     writer = csv.writer(file)
+#     writer.writerow(['example', 42])
 
 # ctypes: Foreign Function Interface for calling C libraries
 ctypes.CDLL(None).time(None)
@@ -66,15 +66,15 @@ ctypes.CDLL(None).time(None)
 datetime.datetime.now()
 
 # dbm: Interfaces to Unix "databases"
-with dbm.open('example.db', 'n') as db:
-    db['hello'] = 'world'
+# with dbm.open('example.db', 'n') as db:
+#     db['hello'] = 'world'
 
 # decimal: Fixed and floating-point arithmetic
 decimal.Decimal('3.14') * decimal.Decimal('2.0')
 
 # ElementTree: XML manipulation API
-root = ET.Element("root")
-ET.SubElement(root, "child").text = "I am a child."
+# root = ET.Element("root")
+# ET.SubElement(root, "child").text = "I am a child."
 
 # heapq: Heap queue algorithm
 heapq.heappush([], 1)
@@ -123,9 +123,9 @@ cmath.sqrt(-1)
 math.sin(math.pi / 2)
 
 # mmap: Memory-mapped file objects
-with open('example.csv', 'r+b') as f:
-    mm = mmap.mmap(f.fileno(), 0)
-    mm.close()
+# with open('example.csv', 'r+b') as f:
+#     mm = mmap.mmap(f.fileno(), 0)
+#     mm.close()
 
 # pyexpat: Python wrapper for the Expat XML parser
 p = pyexpat.ParserCreate()

@@ -1,20 +1,18 @@
 #!/usr/bin/env python3
 
-from sklearn.datasets import make_classification, make_blobs, load_digits
+from sklearn.datasets import make_classification, load_digits
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.preprocessing import StandardScaler, PolynomialFeatures, MinMaxScaler
-from sklearn.decomposition import PCA, NMF, FastICA
+from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE, MDS, Isomap
 from sklearn.cluster import KMeans, DBSCAN, AgglomerativeClustering
 from sklearn.ensemble import GradientBoostingClassifier, HistGradientBoostingClassifier, RandomForestClassifier
-from sklearn.feature_extraction import FeatureHasher
 from sklearn.linear_model import LogisticRegression, SGDClassifier, RidgeClassifier
-from sklearn.metrics import pairwise_distances, silhouette_score, accuracy_score, roc_auc_score
+from sklearn.metrics import silhouette_score, accuracy_score, roc_auc_score
 from sklearn.neighbors import KNeighborsClassifier, BallTree, NearestNeighbors
-from sklearn.svm import SVC, LinearSVC
+from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier, ExtraTreeClassifier
 from sklearn.utils import shuffle, resample
-import numpy as np
 
 # Generate synthetic dataset
 X, y = make_classification(n_samples=1000, n_features=20, n_informative=15, n_redundant=5, random_state=42)
@@ -35,12 +33,13 @@ X_test_scaled = scaler.transform(X_test)
 poly_features = PolynomialFeatures(degree=3).fit_transform(X_train_scaled)
 
 # Decomposition
-pca = PCA(n_components=5).fit_transform(X_train_scaled)
+# don't work for new wheels
+# pca = PCA(n_components=5).fit_transform(X_train_scaled)
 
 # Manifold Learning
-tsne = TSNE(n_components=3).fit_transform(X_train_scaled)
-mds = MDS(n_components=2).fit_transform(X_digits[:100])  # MDS is computationally expensive
-isomap = Isomap(n_components=2).fit_transform(X_digits[:100])
+# tsne = TSNE(n_components=3).fit_transform(X_train_scaled)
+# mds = MDS(n_components=2).fit_transform(X_digits[:100])  # MDS is computationally expensive
+# isomap = Isomap(n_components=2).fit_transform(X_digits[:100])
 
 # Clustering
 kmeans = KMeans(n_clusters=5).fit(X_train_scaled)
@@ -48,9 +47,9 @@ dbscan = DBSCAN(eps=0.5).fit(X_train_scaled)
 agglo = AgglomerativeClustering(n_clusters=5).fit(X_train_scaled)
 
 # Ensemble Methods
-gb = GradientBoostingClassifier().fit(X_train_scaled, y_train)
+# gb = GradientBoostingClassifier().fit(X_train_scaled, y_train)
 hgb = HistGradientBoostingClassifier().fit(X_train_scaled, y_train)
-rf = RandomForestClassifier().fit(X_train_scaled, y_train)
+# rf = RandomForestClassifier().fit(X_train_scaled, y_train)
 
 # Linear Models
 log_reg = LogisticRegression().fit(X_train_scaled, y_train)
@@ -60,14 +59,14 @@ ridge = RidgeClassifier().fit(X_train_scaled, y_train)
 # Neighbors
 knn = KNeighborsClassifier().fit(X_train_scaled, y_train)
 nn = NearestNeighbors(n_neighbors=5).fit(X_train_scaled)
-ball_tree = BallTree(X_train_scaled, leaf_size=50)
+# ball_tree = BallTree(X_train_scaled, leaf_size=50)
 
 # SVM
 svc = SVC().fit(X_train_scaled, y_train)
 
 # Decision Trees
-tree_clf = DecisionTreeClassifier().fit(X_train_scaled, y_train)
-extra_tree_clf = ExtraTreeClassifier().fit(X_train_scaled, y_train)
+# tree_clf = DecisionTreeClassifier().fit(X_train_scaled, y_train)
+#extra_tree_clf = ExtraTreeClassifier().fit(X_train_scaled, y_train)
 
 # Metrics
 accuracy = accuracy_score(y_test, log_reg.predict(X_test_scaled))

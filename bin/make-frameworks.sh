@@ -116,12 +116,12 @@ for library in ./**/*.so ./**/*.dylib; do
 
   if echo "${loader_path}" | grep libopenblas &>/dev/null;then
     echo "Patching ${loader_path}..."
-    #install_name_tool -change "${loader_path}" TBD "${tmp_file_name}"
+    install_name_tool -change "${loader_path}" "@loader_path/../openblas.framework/openblas"  "${tmp_file_name}"
   fi
 
   if echo "${loader_path}" | grep libgfortran &>/dev/null;then
     echo "Patching ${loader_path}..."
-    #install_name_tool -change "${loader_path}" TBD "${tmp_file_name}"
+    install_name_tool -change "${loader_path}" "@loader_path/../ios_flang_runtime.framework/ios_flang_runtime" "${tmp_file_name}"
   fi
 
   if echo "${loader_path}" | grep libomp &>/dev/null;then

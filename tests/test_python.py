@@ -15,6 +15,7 @@ import xml.etree.ElementTree as ET
 import heapq
 import json
 import lzma
+import os
 import random
 import socket
 import sqlite3
@@ -38,6 +39,9 @@ async def async_example():
     await asyncio.sleep(1)
     print("asyncio example")
 
+# Get the document_directory environment variable for the ios sandbox location
+document_directory = os.getenv('document_directory')
+
 # bisect: Array bisection algorithm for binary searching
 bisect.insort([1, 2, 3], 2)
 
@@ -55,7 +59,7 @@ var = contextvars.ContextVar('var', default=42)
 var.set(100)
 
 # csv: CSV file reading and writing
-with open('example.csv', mode='w', newline='') as file:
+with open(os.path.join(document_directory, 'example.csv') if document_directory else 'example.csv', mode='w', newline='') as file:
     writer = csv.writer(file)
     writer.writerow(['example', 42])
 
@@ -66,7 +70,7 @@ ctypes.CDLL(None).time(None)
 datetime.datetime.now()
 
 # dbm: Interfaces to Unix "databases"
-with dbm.open('example.db', 'n') as db:
+with dbm.open(os.path.join(document_directory, 'example') if document_directory else 'example', 'n') as db:
     db['hello'] = 'world'
 
 # decimal: Fixed and floating-point arithmetic
@@ -123,7 +127,7 @@ cmath.sqrt(-1)
 math.sin(math.pi / 2)
 
 # mmap: Memory-mapped file objects
-with open('example.csv', 'r+b') as f:
+with open(os.path.join(document_directory, 'example.csv') if document_directory else 'example.csv', 'r+b') as f:
     mm = mmap.mmap(f.fileno(), 0)
     mm.close()
 
@@ -142,5 +146,9 @@ zlib.compress(b'hello world')
 
 # Running asyncio example
 asyncio.run(async_example())
+
+# Delete the 'example' files
+os.remove(os.path.join(document_directory, 'example.csv') if document_directory else 'example.csv')
+os.remove(os.path.join(document_directory, 'example.db') if document_directory else 'example.db')
 
 print("Completed an extensive demonstration of python functionalities.")

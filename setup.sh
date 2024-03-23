@@ -10,14 +10,11 @@ sdk_version="17.0"
 # Python package name, package version tag, package name alias
 
 # shellcheck disable=SC2034
-#numpy=("numpy" "1.26.4", "numpy)
-numpy=("numpy" "1.24.2" "numpy")
+numpy=("numpy" "1.26.4" "numpy")
 # shellcheck disable=SC2034
-#scikit_learn=("scikit-learn" "1.4.0" "sklearn")
-scikit_learn=("scikit-learn" "1.2.2" "image.sklearn")
+scikit_learn=("scikit-learn" "1.4.0" "sklearn")
 # shellcheck disable=SC2034
-#scipy=("scipy" "1.12.0" "scipy")
-scipy=("scipy" "1.11.1" "scipy")
+scipy=("scipy" "1.12.0" "scipy")
 
 packages=(
   numpy[@]
@@ -30,6 +27,7 @@ export base_dir
 export frameworks_dir="${base_dir}/frameworks"
 export python_dir="${base_dir}/python${python_version}"
 export site_packages_dir="${python_dir}/site-packages"
+export sources_dir="${base_dir}/sources"
 export version_file="${base_dir}/versions.txt"
 PATH="${base_dir}/bin:${PATH}"
 
@@ -47,11 +45,15 @@ fi
 
 rm -rf "${frameworks_dir}" "${python_dir}" "${version_file}" Python-*.zip
 mkdir "${frameworks_dir}"
-python_url=$(curl --silent --location https://api.github.com/repos/beeware/Python-Apple-support/releases | jq --raw-output --arg python_version "${python_version}" '.[] | select(.name | contains($python_version)) | .assets[].browser_download_url' | head -n 1)
-
-python_file=$(echo "${python_url}" | awk -F/ '{print $NF}')
-curl --silent --location "${python_url}" --output "${python_file}"
-tar xfz "${python_file}"
+#python_url=$(curl --silent --location https://api.github.com/repos/beeware/Python-Apple-support/releases | jq --raw-output --arg python_version "${python_version}" '.[] | select(.name | contains($python_version)) | .assets[].browser_download_url' | head -n 1)
+#python_file=$(echo "${python_url}" | awk -F/ '{print $NF}')
+#curl --silent --location "${python_url}" --output "${python_file}"
+#tar xfz "${python_file}"
+pushd "${sources_dir}/python-apple-support"
+sed -i '' "s/ -bundle/ -shared/g" patch/Python/Python.patch
+make iOS
+tar -xzf dist/Python-3.11-iOS-support.custom.tar.gz --directory "${base_dir}"
+popd
 mv python-stdlib "${python_dir}"
 mv Python.xcframework "${frameworks_dir}"
 cp module.modulemap "${frameworks_dir}/Python.xcframework/ios-arm64/Headers"
@@ -105,7 +107,7 @@ for ((i = 0; i < count; i++)); do
 
   if [ -z "${wheel_url}" ]; then
       echo "No matching wheel found for package '${package_name}' with version '${package_version}' and Python ${python_version} on macOS arm64!"
-      curl --silent --location "https://pypi.org/pypi/${package_name}/json" | jq --raw-output '.releases | to_entries[] | .value[] | select(.filename | contains("macosx")) | .url'
+      curl --silent --location "https://pypi.org/pypi/${package_name}/json" | jq --raw-output --arg py_version "${python_version//.}" '.releases | to_entries[] | .value[] | select(.filename | contains("macosx")) | select(.filename | contains("arm64")) | select(.filename | contains($py_version)) | .filename'
       exit 1
   fi
 

@@ -78,11 +78,11 @@ for library in ./**/*.so ./**/*.dylib; do
 
   if [ "${directory}" = "." ]; then
     # shellcheck disable=SC2154
-    folder_name="${bundle_name}-${library_name}.framework"
+    folder_name="${bundle_name##*.}-${library_name}.framework"
     prefix_package="${bundle_name}"
   else
     # shellcheck disable=SC2154
-    folder_name="${bundle_name}-$(echo "${directory}" | tr '/' '-')-${library_name}.framework"
+    folder_name="${bundle_name##*.}-$(echo "${directory}" | tr '/' '-')-${library_name}.framework"
     prefix_package="${bundle_name}.$(echo "${directory}" | tr '/' '.')"
   fi
 
@@ -112,6 +112,23 @@ for library in ./**/*.so ./**/*.dylib; do
   tmp_file_name="${framework_path}/${full_bundle_identifer}"
   mv "${framework_lib_name}" "${tmp_file_name}"
   install_name_tool -id "${full_bundle_identifer}" "${tmp_file_name}" &>/dev/null
+  loader_path=$(otool -L "${tmp_file_name}" | grep "@loader_path" | awk '{ print $1 }' || true)
+
+  if echo "${loader_path}" | grep libopenblas &>/dev/null;then
+    echo "Patching ${loader_path}..."
+    #install_name_tool -change "${loader_path}" TBD "${tmp_file_name}"
+  fi
+
+  if echo "${loader_path}" | grep libgfortran &>/dev/null;then
+    echo "Patching ${loader_path}..."
+    #install_name_tool -change "${loader_path}" TBD "${tmp_file_name}"
+  fi
+
+  if echo "${loader_path}" | grep libomp &>/dev/null;then
+    echo "Patching ${loader_path}..."
+    #install_name_tool -change "${loader_path}" TBD "${tmp_file_name}"
+  fi
+
   mv "${tmp_file_name}" "${framework_lib_name}"
 
   {

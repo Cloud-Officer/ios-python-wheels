@@ -114,19 +114,45 @@ for library in ./**/*.so ./**/*.dylib; do
   install_name_tool -id "${full_bundle_identifer}" "${tmp_file_name}" &>/dev/null
   loader_path=$(otool -L "${tmp_file_name}" | grep "@loader_path" | awk '{ print $1 }' || true)
 
-  if echo "${loader_path}" | grep libopenblas &>/dev/null;then
-    echo "Patching ${loader_path}..."
-    install_name_tool -change "${loader_path}" "@loader_path/../openblas.framework/openblas"  "${tmp_file_name}"
-  fi
+  if [ -n "${loader_path}" ]; then
+    case "${loader_path}" in
+      *openblas*)
+        echo "Patching ${loader_path}..."
 
-  if echo "${loader_path}" | grep libgfortran &>/dev/null;then
-    echo "Patching ${loader_path}..."
-    install_name_tool -change "${loader_path}" "@loader_path/../ios_flang_runtime.framework/ios_flang_runtime" "${tmp_file_name}"
-  fi
+        if [ ! -f "${output_dir}/libopenblas.dylib" ]; then
+          echo "Error: libopenblas.dylib not found!"
+          exit 1
+        fi
 
-  if echo "${loader_path}" | grep libomp &>/dev/null;then
-    echo "Patching ${loader_path}..."
-    #install_name_tool -change "${loader_path}" TBD "${tmp_file_name}"
+        install_name_tool -change "${loader_path}" "@loader_path/../libopenblas.dylib"  "${tmp_file_name}"
+        ;;
+
+      *libomp*)
+        echo "Patching ${loader_path}..."
+
+        if [ ! -f "${output_dir}/libomp.dylib" ]; then
+          echo "Error: libomp.dylib not found!"
+          exit 1
+        fi
+
+        install_name_tool -change "${loader_path}" "@loader_path/../libomp.dylib"  "${tmp_file_name}"
+        ;;
+
+      *libgfortran*)
+        echo "Patching ${loader_path}..."
+
+        if [ ! -f "${output_dir}/libgfortran.dylib" ]; then
+          echo "Error: libgfortran.dylib not found!"
+          exit 1
+        fi
+
+        install_name_tool -change "${loader_path}" "@loader_path/../libgfortran.dylib"  "${tmp_file_name}"
+        ;;
+
+      *)
+        echo "Error: unable to patch ${loader_path}!"
+        exit 1
+    esac
   fi
 
   mv "${tmp_file_name}" "${framework_lib_name}"

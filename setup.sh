@@ -39,11 +39,11 @@ mkdir "${frameworks_dir}"
 #python_file=$(echo "${python_url}" | awk -F/ '{print $NF}')
 #curl --silent --location "${python_url}" --output "${python_file}"
 #tar xfz "${python_file}"
-pushd "${sources_dir}/python-apple-support"
+pushd "${sources_dir}/python-apple-support" &>/dev/null
 sed -i '' "s/ -bundle/ -shared/g" patch/Python/Python.patch
 make iOS
 tar -xzf dist/Python-3.11-iOS-support.custom.tar.gz --directory "${base_dir}"
-popd
+popd &>/dev/null
 mv python-stdlib "${python_dir}"
 mv Python.xcframework "${frameworks_dir}"
 cp module.modulemap "${frameworks_dir}/Python.xcframework/ios-arm64/Headers"
@@ -93,7 +93,16 @@ cp "$(brew --prefix gcc)"/lib/gcc/current/libquadmath*.dylib "${frameworks_dir}"
 cp "$(brew --prefix gcc)"/lib/gcc/current/libgcc_s*.dylib "${frameworks_dir}"
 
 for library in "${frameworks_dir}"/*.dylib; do
-    xcrun vtool -arch arm64 -set-build-version 2 "${minimum_os_version}" "${sdk_version}" -replace -output "${library}" "${library}" &>/dev/null
+  xcrun vtool -arch arm64 -set-build-version 2 "${minimum_os_version}" "${sdk_version}" -replace -output "${library}" "${library}" &>/dev/null
+
+  loader_paths=$(otool -L "${library}" | grep -v : | grep -v /usr/ | grep -v /System/ | awk '{ print $1 }')
+
+  if [ -n "${loader_paths}" ]; then
+    for loader_path in ${loader_paths}; do
+      echo "Patching loader path ${loader_path}..."
+      install_name_tool -change "${loader_path}" "./$(basename ${loader_path})" "${library}" &>/dev/null
+    done
+  fi
 done
 
 # openblas

@@ -112,47 +112,47 @@ for library in ./**/*.so ./**/*.dylib; do
   tmp_file_name="${framework_path}/${full_bundle_identifer}"
   mv "${framework_lib_name}" "${tmp_file_name}"
   install_name_tool -id "${full_bundle_identifer}" "${tmp_file_name}" &>/dev/null
-  loader_path=$(otool -L "${tmp_file_name}" | grep "@loader_path" | awk '{ print $1 }' || true)
 
-  if [ -n "${loader_path}" ]; then
-    case "${loader_path}" in
-      *openblas*)
-        echo "Patching ${loader_path}..."
+  loader_paths=$(otool -L "${tmp_file_name}" | grep -v "${full_bundle_identifer}" | grep -v : | grep -v /usr/ | grep -v /System/ | awk '{print $1}')
+  echo "loader_paths: ${loader_paths}"
 
-        if [ ! -f "${output_dir}/libopenblas.dylib" ]; then
-          echo "Error: libopenblas.dylib not found!"
+  if [ -n "${loader_paths}" ]; then
+    for loader_path in ${loader_paths}; do
+      echo "Patching ${loader_path}..."
+
+      case "${loader_path}" in
+        *openblas*)
+          if [ ! -f "${output_dir}/libopenblas.dylib" ]; then
+            echo "Error: libopenblas.dylib not found!"
+            exit 1
+          fi
+
+          install_name_tool -change "${loader_path}" "@loader_path/../libopenblas.dylib"  "${tmp_file_name}" &>/dev/null
+          ;;
+
+        *libomp*)
+          if [ ! -f "${output_dir}/libomp.dylib" ]; then
+            echo "Error: libomp.dylib not found!"
+            exit 1
+          fi
+
+          install_name_tool -change "${loader_path}" "@loader_path/../libomp.dylib"  "${tmp_file_name}" &>/dev/null
+          ;;
+
+        *libgfortran*)
+          if [ ! -f "${output_dir}/libgfortran.dylib" ]; then
+            echo "Error: libgfortran.dylib not found!"
+            exit 1
+          fi
+
+          install_name_tool -change "${loader_path}" "@loader_path/../libgfortran.dylib"  "${tmp_file_name}" &>/dev/null
+          ;;
+
+        *)
+          echo "Error: unable to patch ${loader_path}!"
           exit 1
-        fi
-
-        install_name_tool -change "${loader_path}" "@loader_path/../libopenblas.dylib"  "${tmp_file_name}"
-        ;;
-
-      *libomp*)
-        echo "Patching ${loader_path}..."
-
-        if [ ! -f "${output_dir}/libomp.dylib" ]; then
-          echo "Error: libomp.dylib not found!"
-          exit 1
-        fi
-
-        install_name_tool -change "${loader_path}" "@loader_path/../libomp.dylib"  "${tmp_file_name}"
-        ;;
-
-      *libgfortran*)
-        echo "Patching ${loader_path}..."
-
-        if [ ! -f "${output_dir}/libgfortran.dylib" ]; then
-          echo "Error: libgfortran.dylib not found!"
-          exit 1
-        fi
-
-        install_name_tool -change "${loader_path}" "@loader_path/../libgfortran.dylib"  "${tmp_file_name}"
-        ;;
-
-      *)
-        echo "Error: unable to patch ${loader_path}!"
-        exit 1
-    esac
+      esac
+    done
   fi
 
   mv "${tmp_file_name}" "${framework_lib_name}"

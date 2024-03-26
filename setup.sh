@@ -10,11 +10,11 @@ sdk_version="17.0"
 # Python package name, package version tag, package name alias
 
 # shellcheck disable=SC2034
-numpy=("numpy" "1.26.4" "numpy")
+numpy=("numpy" "latest" "numpy")
 # shellcheck disable=SC2034
-scikit_learn=("scikit-learn" "1.4.0" "sklearn")
+scikit_learn=("scikit-learn" "latest" "sklearn")
 # shellcheck disable=SC2034
-scipy=("scipy" "1.12.0" "scipy")
+scipy=("scipy" "latest" "scipy")
 
 packages=(
   numpy[@]
@@ -33,6 +33,7 @@ PATH="${base_dir}/bin:${PATH}"
 
 # python apple support
 
+echo "Building Python ${python_version} for iOS..."
 rm -rf "${frameworks_dir}" "${python_dir}" "${version_file}" Python-*.zip
 mkdir "${frameworks_dir}"
 #python_url=$(curl --silent --location https://api.github.com/repos/beeware/Python-Apple-support/releases | jq --raw-output --arg python_version "${python_version}" '.[] | select(.name | contains($python_version)) | .assets[].browser_download_url' | head -n 1)
@@ -55,6 +56,7 @@ rm -rf "${python_dir}/lib-dynload"
 
 # pip packages
 
+echo "Installing pip packages..."
 mkdir -p "${python_dir}/site-packages"
 pushd "${base_dir}/site-packages" &>/dev/null
 pip-compile  --resolver=backtracking
@@ -78,6 +80,8 @@ dependencies=(
   "openblas"
   "xxhash"
 )
+
+echo "Installing dependencies..."
 
 for dependency in "${dependencies[@]}"; do
   if ! brew list "${dependency}" &>/dev/null; then
@@ -120,12 +124,18 @@ done
 
 # package wheels
 
+echo "Installing package wheels..."
 count=${#packages[@]}
 
 for ((i = 0; i < count; i++)); do
   package_name="${!packages[i]:0:1}"
   package_version="${!packages[i]:1:1}"
   package_bundle="${!packages[i]:2:1}"
+
+  if [ "$package_version" == "latest" ]; then
+    package_version=$(curl --silent --location "https://pypi.org/pypi/${package_name}/json" | jq -r '.info.version')
+  fi
+
   echo "Processing package '${package_name}' with version '${package_version}' and Python ${python_version}..."
   echo "${package_name}: ${package_version/v/}" >> "${version_file}"
   wheel_url=$(curl --silent --location "https://pypi.org/pypi/${package_name}/json" | jq --raw-output --arg version "${package_version}" --arg py_version "${python_version//.}" '.releases[$version][] | select(.filename | test("-cp" + $py_version + "-cp" + $py_version + "-macosx_[0-9]+_[0-9]+_arm64.whl$")) | .url' | head -n 1) || true
@@ -162,6 +172,7 @@ find "${site_packages_dir}" -name '*.md' -delete &>/dev/null || true
 
 # compress output
 
+echo "Compressing output..."
 zip --quiet --recurse-paths "Python-$(grep Python versions.txt | awk -F':' '{ print $2 }' | sed 's/ //g')-iOS-Libraries-$(xxhsum versions.txt | awk '{ print $1 }').zip" license versions.txt frameworks "python${python_version}"
 
 echo "${0##*/} completed successfully."

@@ -112,9 +112,7 @@ for library in ./**/*.so ./**/*.dylib; do
   tmp_file_name="${framework_path}/${full_bundle_identifer}"
   mv "${framework_lib_name}" "${tmp_file_name}"
   install_name_tool -id "${full_bundle_identifer}" "${tmp_file_name}" &>/dev/null
-
   loader_paths=$(otool -L "${tmp_file_name}" | grep -v "${full_bundle_identifer}" | grep -v : | grep -v /usr/ | grep -v /System/ | awk '{print $1}')
-  echo "loader_paths: ${loader_paths}"
 
   if [ -n "${loader_paths}" ]; then
     for loader_path in ${loader_paths}; do

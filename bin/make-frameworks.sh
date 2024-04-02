@@ -78,11 +78,11 @@ for library in ./**/*.so ./**/*.dylib; do
 
   if [ "${directory}" = "." ]; then
     # shellcheck disable=SC2154
-    folder_name="${bundle_name}-${library_name}.framework"
+    folder_name="${bundle_name##*.}-${library_name}.framework"
     prefix_package="${bundle_name}"
   else
     # shellcheck disable=SC2154
-    folder_name="${bundle_name}-$(echo "${directory}" | tr '/' '-')-${library_name}.framework"
+    folder_name="${bundle_name##*.}-$(echo "${directory}" | tr '/' '-')-${library_name}.framework"
     prefix_package="${bundle_name}.$(echo "${directory}" | tr '/' '.')"
   fi
 
@@ -112,6 +112,47 @@ for library in ./**/*.so ./**/*.dylib; do
   tmp_file_name="${framework_path}/${full_bundle_identifer}"
   mv "${framework_lib_name}" "${tmp_file_name}"
   install_name_tool -id "${full_bundle_identifer}" "${tmp_file_name}" &>/dev/null
+  loader_paths=$(otool -L "${tmp_file_name}" | grep -v "${full_bundle_identifer}" | grep -v : | grep -v /usr/ | grep -v /System/ | awk '{print $1}')
+
+  if [ -n "${loader_paths}" ]; then
+    for loader_path in ${loader_paths}; do
+      echo "Patching ${loader_path}..."
+
+      case "${loader_path}" in
+        *openblas*)
+          if [ ! -f "${output_dir}/libopenblas.dylib" ]; then
+            echo "Error: libopenblas.dylib not found!"
+            exit 1
+          fi
+
+          install_name_tool -change "${loader_path}" "@loader_path/../libopenblas.dylib"  "${tmp_file_name}" &>/dev/null
+          ;;
+
+        *libomp*)
+          if [ ! -f "${output_dir}/libomp.dylib" ]; then
+            echo "Error: libomp.dylib not found!"
+            exit 1
+          fi
+
+          install_name_tool -change "${loader_path}" "@loader_path/../libomp.dylib"  "${tmp_file_name}" &>/dev/null
+          ;;
+
+        *libgfortran*)
+          if [ ! -f "${output_dir}/libgfortran.dylib" ]; then
+            echo "Error: libgfortran.dylib not found!"
+            exit 1
+          fi
+
+          install_name_tool -change "${loader_path}" "@loader_path/../libgfortran.dylib"  "${tmp_file_name}" &>/dev/null
+          ;;
+
+        *)
+          echo "Error: unable to patch ${loader_path}!"
+          exit 1
+      esac
+    done
+  fi
+
   mv "${tmp_file_name}" "${framework_lib_name}"
 
   {

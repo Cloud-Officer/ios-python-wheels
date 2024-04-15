@@ -89,37 +89,37 @@ for dependency in "${dependencies[@]}"; do
   fi
 done
 
-#cp "$(brew --prefix openblas)"/lib/*.dylib "${frameworks_dir}"
-cp "$(brew --prefix libomp)"/lib/*.dylib "${frameworks_dir}"
-#cp "$(brew --prefix gcc)"/lib/gcc/current/libgfortran*.dylib "${frameworks_dir}"
-#cp "$(brew --prefix gcc)"/lib/gcc/current/libgomp*.dylib "${frameworks_dir}"
-#cp "$(brew --prefix gcc)"/lib/gcc/current/libquadmath*.dylib "${frameworks_dir}"
-#cp "$(brew --prefix gcc)"/lib/gcc/current/libgcc_s*.dylib "${frameworks_dir}"
-
-for library in "${frameworks_dir}"/*.dylib; do
-  xcrun vtool -arch arm64 -set-build-version 2 "${minimum_os_version}" "${sdk_version}" -replace -output "${library}" "${library}" &>/dev/null
-  loader_paths=$(otool -L "${library}" | grep -v : | grep -v /usr/ | grep -v /System/ | awk '{ print $1 }')
-
-  if [ -n "${loader_paths}" ]; then
-    for loader_path in ${loader_paths}; do
-      echo "Patching loader path ${loader_path}..."
-      install_name_tool -change "${loader_path}" "@loader_path/$(basename ${loader_path})" "${library}" &>/dev/null
-    done
-  fi
-done
+# cp "$(brew --prefix openblas)"/lib/*.dylib "${frameworks_dir}"
+# cp "$(brew --prefix libomp)"/lib/*.dylib "${frameworks_dir}"
+# cp "$(brew --prefix gcc)"/lib/gcc/current/libgfortran*.dylib "${frameworks_dir}"
+# cp "$(brew --prefix gcc)"/lib/gcc/current/libgomp*.dylib "${frameworks_dir}"
+# cp "$(brew --prefix gcc)"/lib/gcc/current/libquadmath*.dylib "${frameworks_dir}"
+# cp "$(brew --prefix gcc)"/lib/gcc/current/libgcc_s*.dylib "${frameworks_dir}"
+#
+# for library in "${frameworks_dir}"/*.dylib; do
+#   xcrun vtool -arch arm64 -set-build-version 2 "${minimum_os_version}" "${sdk_version}" -replace -output "${library}" "${library}" &>/dev/null
+#   loader_paths=$(otool -L "${library}" | grep -v : | grep -v /usr/ | grep -v /System/ | awk '{ print $1 }')
+#
+#   if [ -n "${loader_paths}" ]; then
+#     for loader_path in ${loader_paths}; do
+#       echo "Patching loader path ${loader_path}..."
+#       install_name_tool -change "${loader_path}" "@loader_path/$(basename ${loader_path})" "${library}" &>/dev/null
+#     done
+#   fi
+# done
 
 # openblas
 
-lapack_version="1.4"
-
-curl --silent --location "https://github.com/ColdGrub1384/lapack-ios/releases/download/v${lapack_version}/lapack-ios.zip" --output lapack-ios.zip
-unzip -q lapack-ios.zip
-mv lapack-ios/openblas.framework "${frameworks_dir}"
-mv lapack-ios/lapack.framework "${frameworks_dir}/scipy-deps.framework"
-mv lapack-ios/ios_flang_runtime.framework "${frameworks_dir}"
-cp "${frameworks_dir}/openblas.framework/openblas" "${frameworks_dir}/libopenblas.dylib"
-cp "${frameworks_dir}/ios_flang_runtime.framework/ios_flang_runtime" "${frameworks_dir}/libgfortran.dylib"
-rm -rf __MACOSX lapack-ios lapack-ios.zip
+# lapack_version="1.4"
+#
+# curl --silent --location "https://github.com/ColdGrub1384/lapack-ios/releases/download/v${lapack_version}/lapack-ios.zip" --output lapack-ios.zip
+# unzip -q lapack-ios.zip
+# mv lapack-ios/openblas.framework "${frameworks_dir}"
+# mv lapack-ios/lapack.framework "${frameworks_dir}/scipy-deps.framework"
+# mv lapack-ios/ios_flang_runtime.framework "${frameworks_dir}"
+# cp "${frameworks_dir}/openblas.framework/openblas" "${frameworks_dir}/libopenblas.dylib"
+# cp "${frameworks_dir}/ios_flang_runtime.framework/ios_flang_runtime" "${frameworks_dir}/libgfortran.dylib"
+# rm -rf __MACOSX lapack-ios lapack-ios.zip
 
 # package wheels
 
@@ -138,6 +138,7 @@ for ((i = 0; i < count; i++)); do
   echo "Processing package '${package_name}' with version '${package_version}' and Python ${python_version}..."
   echo "${package_name}: ${package_version/v/}" >> "${version_file}"
   wheel_url=$(curl --silent --location "https://pypi.org/pypi/${package_name}/json" | jq --raw-output --arg version "${package_version}" --arg py_version "${python_version//.}" '.releases[$version][] | select(.filename | test("-cp" + $py_version + "-cp" + $py_version + "-macosx_[0-9]+_[0-9]+_arm64.whl$")) | .url' | head -n 1) || true
+  echo "Downloading wheel from ${wheel_url}..."
 
   if [ -z "${wheel_url}" ]; then
       echo "No matching wheel found for package '${package_name}' with version '${package_version}' and Python ${python_version} on macOS arm64!"
@@ -151,6 +152,11 @@ for ((i = 0; i < count; i++)); do
   pushd "${temp_dir}" &>/dev/null
   unzip -q "${wheel_file}"
   rm -f "${wheel_file}"
+
+  if [ -d "${package_bundle}/.dylibs" ]; then
+    cp -f "${package_bundle}/.dylibs"/*.dylib "${frameworks_dir}"
+  fi
+
   # shellcheck disable=SC2010
   make-frameworks.sh --bundle-identifier "org" --bundle-name "${package_bundle}" --bundle-version "${package_version}" --input-dir "${temp_dir}/$(ls | grep -v dist-info)" --minimum-os-version "${minimum_os_version}" --sdk_version "${sdk_version}" --output-dir "${frameworks_dir}"
   mv ./* "${site_packages_dir}"
@@ -160,6 +166,18 @@ for ((i = 0; i < count; i++)); do
   if ! [ -f "tests/test_${package_name}.py" ]; then
       echo "No tests found for package '${package_name}'!"
       exit 1
+  fi
+done
+
+for library in "${frameworks_dir}"/*.dylib; do
+  xcrun vtool -arch arm64 -set-build-version 2 "${minimum_os_version}" "${sdk_version}" -replace -output "${library}" "${library}" &>/dev/null
+  loader_paths=$(otool -L "${library}" | grep -v : | grep -v /usr/ | grep -v /System/ | awk '{ print $1 }')
+
+  if [ -n "${loader_paths}" ]; then
+    for loader_path in ${loader_paths}; do
+      echo "Patching loader path ${loader_path}..."
+      install_name_tool -change "${loader_path}" "@loader_path/$(basename ${loader_path})" "${library}" &>/dev/null
+    done
   fi
 done
 

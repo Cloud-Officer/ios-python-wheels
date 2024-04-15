@@ -6,6 +6,7 @@
 
 .github/                 @ydesgagn
 .gitignore               @ydesgagn
+.gitmodules              @ydesgagn
 .markdownlint.yml        @ydesgagn
 .shellcheckrc            @ydesgagn
 .soup.json               @ydesgagn

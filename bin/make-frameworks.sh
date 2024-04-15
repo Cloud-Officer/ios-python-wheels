@@ -120,12 +120,12 @@ for library in ./**/*.so ./**/*.dylib; do
 
       case "${loader_path}" in
         *openblas*)
-          if [ ! -f "${output_dir}/libopenblas.dylib" ]; then
-            echo "Error: libopenblas.dylib not found!"
+          if [ ! -f "${output_dir}/libopenblas64_.0.dylib" ]; then
+            echo "Error: libopenblas64_.0.dylib not found!"
             exit 1
           fi
 
-          install_name_tool -change "${loader_path}" "@loader_path/../libopenblas.dylib"  "${tmp_file_name}" &>/dev/null
+          install_name_tool -change "${loader_path}" "@loader_path/../libopenblas64_.0.dylib"  "${tmp_file_name}" &>/dev/null
           ;;
 
         *libomp*)
@@ -138,12 +138,12 @@ for library in ./**/*.so ./**/*.dylib; do
           ;;
 
         *libgfortran*)
-          if [ ! -f "${output_dir}/libgfortran.dylib" ]; then
-            echo "Error: libgfortran.dylib not found!"
+          if [ ! -f "${output_dir}/libgfortran.5.dylib" ]; then
+            echo "Error: libgfortran.5.dylib not found!"
             exit 1
           fi
 
-          install_name_tool -change "${loader_path}" "@loader_path/../libgfortran.dylib"  "${tmp_file_name}" &>/dev/null
+          install_name_tool -change "${loader_path}" "@loader_path/../libgfortran.5.dylib"  "${tmp_file_name}" &>/dev/null
           ;;
 
         *)
